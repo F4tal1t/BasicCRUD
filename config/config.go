@@ -1,16 +1,19 @@
 package config
 
 import (
-	"database/sql"
+	// "database/sql" // Old SQL package - replaced with GORM
 	"fmt"
 	"log"
 	"os"
 
 	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
+	// _ "github.com/lib/pq" // Old postgres driver - replaced with GORM driver
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
-var DB *sql.DB
+// var DB *sql.DB // Old SQL database instance - replaced with GORM
+var DB *gorm.DB // GORM database instance
 
 func ConnectDB() {
 	// Load environment variables from .env file
@@ -31,21 +34,35 @@ func ConnectDB() {
 		log.Fatal("DB_PASSWORD environment variable is required")
 	}
 
-	// Build connection string
-	connStr := fmt.Sprintf("user=%s dbname=%s password=%s host=%s port=%s sslmode=%s",
+	// Build connection string for GORM
+	dsn := fmt.Sprintf("user=%s dbname=%s password=%s host=%s port=%s sslmode=%s",
 		dbUser, dbName, dbPassword, dbHost, dbPort, dbSSLMode)
 
-	db, err := sql.Open("postgres", connStr)
+	// OLD SQL CONNECTION - replaced with GORM
+	// db, err := sql.Open("postgres", connStr)
+	// if err != nil {
+	//     log.Fatalf("Failed to connect to database: %v", err)
+	// }
+	// if err := db.Ping(); err != nil {
+	//     log.Fatalf("Failed to ping database: %v", err)
+	// }
+
+	// NEW GORM CONNECTION
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("Failed to connect to database with GORM: %v", err)
 	}
 
-	// Test the connection
-	if err := db.Ping(); err != nil {
+	// Test the connection using GORM
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Fatalf("Failed to get underlying SQL DB: %v", err)
+	}
+	if err := sqlDB.Ping(); err != nil {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 
-	log.Println("Successfully connected to PostgreSQL database")
+	log.Println("Successfully connected to PostgreSQL database with GORM")
 	DB = db
 }
 
